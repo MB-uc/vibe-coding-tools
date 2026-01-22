@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe coding prompt generator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Crimson Text', Georgia, serif;
+            background: #0a0a0c;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: #c4b998;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 80%, rgba(60, 20, 20, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(30, 30, 60, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.8) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .container {
+            max-width: 700px;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 0.875rem;
+            font-weight: 400;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            margin-bottom: 2.5rem;
+            color: #5a5449;
+            text-align: center;
+        }
+
+        .deck-container {
+            position: relative;
+            width: 280px;
+            height: 400px;
+            margin-bottom: 2rem;
+            perspective: 1000px;
+        }
+
+        .card {
+            position: absolute;
+            width: 240px;
+            height: 340px;
+            left: 50%;
+            top: 50%;
+            transform-style: preserve-3d;
+            transition: transform 0.8s ease, opacity 0.5s ease;
+            cursor: default;
+            border-radius: 8px;
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .card-back {
+            background: linear-gradient(145deg, #1e1e24 0%, #141418 100%);
+            border: 1px solid #3a3834;
+            box-shadow: 
+                0 4px 20px rgba(0, 0, 0, 0.5),
+                inset 0 0 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-back::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            border: 1px solid #3a3834;
+            border-radius: 4px;
+        }
+
+        .card-symbol {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #4a4844;
+        }
+
+        .card-symbol svg {
+            width: 80px;
+            height: 80px;
+            fill: none;
+            stroke: #4a4844;
+            stroke-width: 1;
+        }
+
+        .card-front {
+            background: linear-gradient(145deg, #141418 0%, #0d0d10 100%);
+            border: 1px solid #4a4844;
+            transform: rotateY(180deg);
+            box-shadow: 
+                0 8px 30px rgba(0, 0, 0, 0.6),
+                inset 0 0 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-front::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            border: 1px solid #3a3834;
+            border-radius: 4px;
+        }
+
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .card-text {
+            font-size: 1.125rem;
+            line-height: 1.6;
+            text-align: center;
+            color: #c4b998;
+            padding: 0.5rem;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .copy-button {
+            padding: 0.5rem 1rem;
+            font-family: 'Crimson Text', Georgia, serif;
+            font-size: 0.75rem;
+            font-weight: 400;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            background: transparent;
+            color: #5a5449;
+            border: 1px solid #3a3834;
+            border-radius: 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .copy-button:hover {
+            color: #c4b998;
+            border-color: #5a5854;
+            background: rgba(196, 185, 152, 0.05);
+        }
+
+        .copy-button.copied {
+            color: #7a9a7a;
+            border-color: #5a7a5a;
+        }
+
+        .card.flipped {
+            transform: translate(-50%, -50%) rotateY(180deg) !important;
+            z-index: 100 !important;
+        }
+
+        .card.scattered {
+            opacity: 0;
+            transition: transform 0.6s ease, opacity 0.4s ease 0.2s;
+        }
+
+        button.draw-button {
+            padding: 1.125rem 2.5rem;
+            font-family: 'Crimson Text', Georgia, serif;
+            font-size: 1rem;
+            font-weight: 400;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            background: transparent;
+            color: #5a5449;
+            border: 1px solid #2a2824;
+            border-radius: 0;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            position: relative;
+            margin-bottom: 3rem;
+        }
+
+        button.draw-button:hover:not(:disabled) {
+            color: #c4b998;
+            border-color: #4a4439;
+            background: rgba(196, 185, 152, 0.03);
+            box-shadow: 0 0 30px rgba(196, 185, 152, 0.05);
+        }
+
+        button.draw-button:active:not(:disabled) {
+            color: #d4c9a8;
+        }
+
+        button.draw-button:disabled {
+            opacity: 0;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .instructions {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            border: 1px solid #1a1a1f;
+            background: rgba(10, 10, 12, 0.8);
+            font-size: 1rem;
+            color: #5a5449;
+            line-height: 1.9;
+            opacity: 0.7;
+            transition: opacity 0.5s ease;
+        }
+
+        .instructions.prominent {
+            opacity: 1;
+            border-color: #2a2824;
+        }
+
+        .instructions p {
+            margin-bottom: 1.25rem;
+            font-style: italic;
+            color: #4a4439;
+            letter-spacing: 0.1em;
+            text-align: center;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+        }
+
+        .instructions ol {
+            margin-left: 1.5rem;
+        }
+
+        .instructions li {
+            margin-bottom: 0.75rem;
+            color: #6a6254;
+        }
+
+        .instructions.prominent li {
+            color: #8a8274;
+        }
+
+        .instructions li::marker {
+            color: #3a3632;
+        }
+
+        .symbol {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            color: #2a2824;
+            letter-spacing: 0.5em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="symbol">· · ·</div>
+        
+        <h1>Vibe coding prompt generator</h1>
+        
+        <div class="deck-container" id="deck">
+            <!-- Cards will be generated here -->
+        </div>
+        
+        <button class="draw-button" id="draw">Turn over a card</button>
+        
+        <div class="instructions" id="instructions">
+            <p>The rules</p>
+            <ol>
+                <li>Turn over a card. This is your prompt.</li>
+                <li>Start immediately. No planning.</li>
+                <li>Work for exactly 15 minutes.</li>
+                <li>Delete everything when you stop.</li>
+                <li>Notice: where did it want to go that you didn't?</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const prompts = [
+            "Build something that reacts to time, but never explains what time means.",
+            "Create a system that feels helpful at first and slowly becomes untrustworthy.",
+            "Make something where the user is always slightly late.",
+            "Build an interaction where doing nothing is a meaningful choice.",
+            "Create a tool that withholds exactly one important piece of information.",
+            "Make something that looks simple but behaves differently when revisited.",
+            "Build a system that wants to be understood but resists explanation.",
+            "Build something that responds differently depending on how confidently it is used.",
+            "Create a system that can be used correctly for the wrong reasons.",
+            "Build something that remembers what you chose not to do.",
+            "Create a system where the most useful action is also the most ambiguous.",
+            "Make something that helps you less the more you rely on it.",
+            "Build an interface that knows when you're stalling.",
+            "Create something that works perfectly but feels wrong.",
+            "Make a system that rewards hesitation.",
+            "Build something that changes what it measures based on what you've already measured.",
+            "Create a tool that becomes more accurate by becoming less precise.",
+            "Build something where the default state is accusation.",
+            "Make a system that treats completion as a warning sign.",
+            "Create an experience where certainty decreases as more information is revealed."
+        ];
+        
+        // Fixed first draw - this prompt always appears on top
+        const fixedFirstPrompt = "Create an experience where certainty decreases as more information is revealed.";
+
+        // Macabre symbol SVG - a moth with skull-like markings
+        const symbolSVG = `
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- Moth body -->
+                <ellipse cx="50" cy="55" rx="6" ry="18" />
+                
+                <!-- Head -->
+                <circle cx="50" cy="32" r="6" />
+                
+                <!-- Antennae -->
+                <path d="M 46 28 Q 38 18, 30 12" />
+                <path d="M 54 28 Q 62 18, 70 12" />
+                
+                <!-- Left wing upper -->
+                <path d="M 44 45 Q 20 30, 12 45 Q 8 55, 20 60 Q 35 62, 44 55" />
+                
+                <!-- Right wing upper -->
+                <path d="M 56 45 Q 80 30, 88 45 Q 92 55, 80 60 Q 65 62, 56 55" />
+                
+                <!-- Left wing lower -->
+                <path d="M 44 58 Q 25 65, 22 78 Q 30 85, 44 72" />
+                
+                <!-- Right wing lower -->
+                <path d="M 56 58 Q 75 65, 78 78 Q 70 85, 56 72" />
+                
+                <!-- Skull marking on body -->
+                <circle cx="47" cy="48" r="2" fill="currentColor" />
+                <circle cx="53" cy="48" r="2" fill="currentColor" />
+                <path d="M 48 54 L 50 56 L 52 54" />
+                
+                <!-- Wing eye spots -->
+                <circle cx="28" cy="50" r="5" />
+                <circle cx="28" cy="50" r="2" fill="currentColor" />
+                <circle cx="72" cy="50" r="5" />
+                <circle cx="72" cy="50" r="2" fill="currentColor" />
+            </svg>
+        `;
+
+        // Shuffle array
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        const shuffledPrompts = shuffle(prompts.filter(p => p !== fixedFirstPrompt));
+        shuffledPrompts.push(fixedFirstPrompt); // Always on top
+        const deck = document.getElementById('deck');
+        const drawButton = document.getElementById('draw');
+        const instructions = document.getElementById('instructions');
+
+        // Create cards
+        shuffledPrompts.forEach((prompt, index) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.dataset.index = index;
+            card.dataset.prompt = prompt;
+            
+            // Fan out from center - tighter spread
+            const totalCards = shuffledPrompts.length;
+            const angleSpread = 40;
+            const angle = ((index - totalCards / 2) / totalCards) * angleSpread;
+            const offsetX = ((index - totalCards / 2) / totalCards) * 60;
+            const offsetY = Math.abs(index - totalCards / 2) * 2;
+            
+            card.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) rotate(${angle}deg)`;
+            card.style.zIndex = index;
+            
+            card.innerHTML = `
+                <div class="card-face card-back">
+                    <div class="card-symbol">
+                        ${symbolSVG}
+                    </div>
+                </div>
+                <div class="card-face card-front">
+                    <div class="card-content">
+                        <span class="card-text">${prompt}</span>
+                        <button class="copy-button">Copy</button>
+                    </div>
+                </div>
+            `;
+            
+            deck.appendChild(card);
+        });
+
+        // Add event listeners to all copy buttons
+        document.querySelectorAll('.copy-button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const card = this.closest('.card');
+                const prompt = card.dataset.prompt;
+                
+                navigator.clipboard.writeText(prompt).then(() => {
+                    this.textContent = 'Copied';
+                    this.classList.add('copied');
+                    setTimeout(() => {
+                        this.textContent = 'Copy';
+                        this.classList.remove('copied');
+                    }, 2000);
+                }).catch(err => {
+                    // Fallback for older browsers or if clipboard API fails
+                    const textarea = document.createElement('textarea');
+                    textarea.value = prompt;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    
+                    this.textContent = 'Copied';
+                    this.classList.add('copied');
+                    setTimeout(() => {
+                        this.textContent = 'Copy';
+                        this.classList.remove('copied');
+                    }, 2000);
+                });
+            });
+        });
+
+        let drawn = false;
+
+        drawButton.addEventListener('click', () => {
+            if (drawn) return;
+            drawn = true;
+
+            const cards = document.querySelectorAll('.card');
+            const topCard = cards[cards.length - 1];
+            
+            // Scatter other cards
+            cards.forEach((card, index) => {
+                if (card !== topCard) {
+                    const randomX = (Math.random() - 0.5) * 800;
+                    const randomY = (Math.random() - 0.5) * 400;
+                    const randomRotate = (Math.random() - 0.5) * 90;
+                    card.style.transform = `translate(calc(-50% + ${randomX}px), calc(-50% + ${randomY}px)) rotate(${randomRotate}deg)`;
+                    card.classList.add('scattered');
+                }
+            });
+
+            // Flip the top card
+            setTimeout(() => {
+                topCard.classList.add('flipped');
+            }, 300);
+
+            // Disable button and make instructions prominent
+            drawButton.disabled = true;
+            instructions.classList.add('prominent');
+        });
+    </script>
+</body>
+</html>

@@ -71,7 +71,7 @@
             letter-spacing: 0.3em;
             text-transform: uppercase;
             margin-bottom: 2.5rem;
-            color: #c4b998;
+            color: #5a5449;
             text-align: center;
         }
 
@@ -110,7 +110,7 @@
 
         .card-back {
             background: linear-gradient(145deg, #1e1e24 0%, #141418 100%);
-            border: 1px solid #7a7874;
+            border: 1px solid #3a3834;
             box-shadow: 
                 0 4px 20px rgba(0, 0, 0, 0.5),
                 inset 0 0 30px rgba(0, 0, 0, 0.3);
@@ -123,7 +123,7 @@
             left: 12px;
             right: 12px;
             bottom: 12px;
-            border: 1px solid #7a7874;
+            border: 1px solid #3a3834;
             border-radius: 4px;
         }
 
@@ -134,20 +134,20 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: #b4a998;
+            color: #4a4844;
         }
 
         .card-symbol svg {
             width: 80px;
             height: 80px;
             fill: none;
-            stroke: #b4a998;
-            stroke-width: 2;
+            stroke: #4a4844;
+            stroke-width: 1;
         }
 
         .card-front {
             background: linear-gradient(145deg, #141418 0%, #0d0d10 100%);
-            border: 1px solid #6a6864;
+            border: 1px solid #4a4844;
             transform: rotateY(180deg);
             box-shadow: 
                 0 8px 30px rgba(0, 0, 0, 0.6),
@@ -161,7 +161,7 @@
             left: 12px;
             right: 12px;
             bottom: 12px;
-            border: 1px solid #5a5854;
+            border: 1px solid #3a3834;
             border-radius: 4px;
         }
 
@@ -193,8 +193,8 @@
             letter-spacing: 0.15em;
             text-transform: uppercase;
             background: transparent;
-            color: #9a9285;
-            border: 1px solid #5a5854;
+            color: #5a5449;
+            border: 1px solid #3a3834;
             border-radius: 0;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -202,9 +202,9 @@
         }
 
         .copy-button:hover {
-            color: #d4c9a8;
-            border-color: #7a7874;
-            background: rgba(196, 185, 152, 0.08);
+            color: #c4b998;
+            border-color: #5a5854;
+            background: rgba(196, 185, 152, 0.05);
         }
 
         .copy-button.copied {
@@ -290,22 +290,22 @@
 
         .instructions li {
             margin-bottom: 0.75rem;
-            color: #9a9285;
+            color: #6a6254;
         }
 
         .instructions.prominent li {
-            color: #b4a998;
+            color: #8a8274;
         }
 
         .instructions li::marker {
-            color: #6a6662;
+            color: #3a3632;
         }
 
         .symbol {
             text-align: center;
             margin-bottom: 1.5rem;
             font-size: 1.5rem;
-            color: #9a9285;
+            color: #2a2824;
             letter-spacing: 0.5em;
         }
     </style>
@@ -358,9 +358,6 @@
             "Create an experience where certainty decreases as more information is revealed."
         ];
         
-        // Fixed first draw - this prompt always appears on top
-        const fixedFirstPrompt = "Create an experience where certainty decreases as more information is revealed.";
-
         // Macabre symbol SVG - a moth with skull-like markings
         const symbolSVG = `
             <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -409,8 +406,7 @@
             return arr;
         }
 
-        const shuffledPrompts = shuffle(prompts.filter(p => p !== fixedFirstPrompt));
-        shuffledPrompts.push(fixedFirstPrompt); // Always on top
+        const shuffledPrompts = shuffle(prompts);
         const deck = document.getElementById('deck');
         const drawButton = document.getElementById('draw');
         const instructions = document.getElementById('instructions');
@@ -484,18 +480,54 @@
             });
         });
 
-        let drawn = false;
+        let flippedCards = new Set();
+        let currentlyShownCard = null;
 
-        drawButton.addEventListener('click', () => {
-            if (drawn) return;
-            drawn = true;
+        function getUnflippedCards() {
+            return Array.from(document.querySelectorAll('.card')).filter(
+                card => !flippedCards.has(card.dataset.index)
+            );
+        }
 
+        function resetCardPositions() {
             const cards = document.querySelectorAll('.card');
-            const topCard = cards[cards.length - 1];
-            
-            // Scatter other cards
+            const totalCards = cards.length;
+
             cards.forEach((card, index) => {
-                if (card !== topCard) {
+                if (card === currentlyShownCard) return;
+
+                const angleSpread = 40;
+                const angle = ((index - totalCards / 2) / totalCards) * angleSpread;
+                const offsetX = ((index - totalCards / 2) / totalCards) * 60;
+                const offsetY = Math.abs(index - totalCards / 2) * 2;
+
+                card.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) rotate(${angle}deg)`;
+                card.style.zIndex = index;
+                card.classList.remove('scattered');
+            });
+        }
+
+        function showRandomCard() {
+            const unflippedCards = getUnflippedCards();
+
+            if (unflippedCards.length === 0) {
+                drawButton.textContent = 'You\'ve turned all the cards!';
+                drawButton.disabled = true;
+                return;
+            }
+
+            // If there's a currently shown card, put it back in the deck
+            if (currentlyShownCard) {
+                currentlyShownCard.classList.add('scattered');
+            }
+
+            // Pick a random unflipped card
+            const randomIndex = Math.floor(Math.random() * unflippedCards.length);
+            const selectedCard = unflippedCards[randomIndex];
+
+            // Scatter all other unflipped cards
+            unflippedCards.forEach(card => {
+                if (card !== selectedCard) {
                     const randomX = (Math.random() - 0.5) * 800;
                     const randomY = (Math.random() - 0.5) * 400;
                     const randomRotate = (Math.random() - 0.5) * 90;
@@ -504,15 +536,31 @@
                 }
             });
 
-            // Flip the top card
+            // Bring selected card to center and flip it
+            selectedCard.style.transform = 'translate(-50%, -50%) rotate(0deg)';
+            selectedCard.style.zIndex = 100;
+            selectedCard.classList.remove('scattered');
+
             setTimeout(() => {
-                topCard.classList.add('flipped');
+                selectedCard.classList.add('flipped');
+                flippedCards.add(selectedCard.dataset.index);
+                currentlyShownCard = selectedCard;
+
+                // Update button text
+                const remaining = shuffledPrompts.length - flippedCards.size;
+                if (remaining === 0) {
+                    drawButton.textContent = 'You\'ve turned all the cards!';
+                    drawButton.disabled = true;
+                } else {
+                    drawButton.textContent = `Draw another (${remaining} remaining)`;
+                }
             }, 300);
 
-            // Disable button and make instructions prominent
-            drawButton.disabled = true;
+            // Make instructions prominent on first draw
             instructions.classList.add('prominent');
-        });
+        }
+
+        drawButton.addEventListener('click', showRandomCard);
     </script>
 </body>
 </html>
